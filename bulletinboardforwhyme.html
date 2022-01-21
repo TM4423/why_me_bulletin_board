@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <title>Why me bulletin board</title>
+</head>
+
+<body>
+    <style type='text/css'>
+        #box {
+            border: 1px solid #333333;
+            width: auto;
+            height: 400px;
+            overflow-y: scroll;
+        }
+        .text_bgcolor {
+            background-color: #fcf9d8;
+        }
+    </style>
+    <!-- コンテンツ表示画面 -->
+
+    <div>
+        <div> 名前：<input type="text" id="uname"></div>
+        <div>
+            <textarea id="text" cols="50" rows="5"></textarea>
+            <button id="send">送信</button>
+            <button id="tweet">何か発言</button>
+        </div>
+        <div id='box'>
+            <ul id='output' class='dialogue'></ul>
+        </div>
+    </div>
+    <!--/ コンテンツ表示画面 -->
+
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- JQuery -->
+    
+    <!--** 以下Firebase **-->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved }     // TODO: Add SDKs for Firebase products that you want to use
+            from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app); // データベースへの接続
+        const dbRef = ref(db, ''); // どのデータベースを参照するか
+
+        $('#send').on('click', (e) => {
+            // console.log(e);
+            shapeHTML();
+        });
+
+        let shapeHTML = () => {
+            const date = new Date();
+            let wtime = ('0'+date.getHours()).slice(-2)+':';
+            wtime += ('0'+date.getMinutes()).slice(-2)+':'
+            wtime += ('0'+date.getSeconds()).slice(-2);
+            const msg = {
+                uname: $('#uname').val(),
+                text: $('#text').val(),
+                colorname: $('#uname').css("background-color"),
+                wtime: wtime
+            }
+            const newPostRef = push(dbRef); // データをユニークなものにするための記述
+            set(newPostRef, msg) // データを保存
+            // $('#uname').val(null);
+            $('#text').val(String.fromCharCode(8));
+            $('#text').focus();
+        };
+
+        onChildAdded(dbRef, function (data) {
+            const msg = data.val();
+            const key = data.key;
+            const reg = new RegExp('\n', 'g');
+            let replaced_msg = msg.text;
+            replaced_msg = replaced_msg.replace(reg, `<br>`);
+            let h = `<li id='${key}' class='dialogue' style='display:none'>`;
+            h += `${msg.uname}  wrote at  ${msg.wtime}<br>`;
+            h += `<div class='text_bgcolor'>${replaced_msg}</div>`;
+            h += '</li>';
+            $("#output").append(h); //#outputの最後に追加
+            $(`#${key}`).fadeIn(500);
+            $('#box').scrollTop(100000);
+        })
+
+        onChildRemoved(dbRef, function (data) {
+            const key = data.key;
+            $(`#${key}`).slideUp(200);
+            // location.reload(); // リロードする場合の書き方
+        })
+
+        $('#output').on('click', function (e) {
+            console.log(e);
+            const thisID = e.target.id;
+            const deletePostRef = $('li').attr('id');
+            // remove(ref(db, `chat/${thisID}`)); 1行削除コマンド
+        })
+
+        // ガヤおまけ
+        $('#uname').on('change', () => {
+            const colornum = Math.floor(Math.random() * 4096).toString(16);
+            $('#uname').css("background-color",`#${colornum}`);
+            
+        })
+
+        $('#tweet').on('click', (e) => {
+            const r = Math.floor(Math.random()*1600);
+            console.log(r);
+            const key = localStorage.key(r);
+            const value = localStorage.getItem(key);
+            $('#text').val(value);
+        });
+ 
+    </script>
+
+
+
+</body>
+
+</html>
